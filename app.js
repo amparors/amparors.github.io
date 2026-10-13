@@ -471,6 +471,81 @@ function processar(texto, jaMostrado = false) {
 }
 
 /* =========================================================
+   Atualizar: puxar a tela para baixo e versão nova automática
+   ========================================================= */
+
+const DISTANCIA_PARA_ATUALIZAR = 90; // pixels puxando para baixo
+
+async function atualizarApp() {
+  try {
+    const registro = await navigator.serviceWorker?.getRegistration();
+    await registro?.update();
+  } catch (e) { /* sem internet: recarrega com a cópia guardada */ }
+  location.reload();
+}
+
+// O celular não deixa puxar para atualizar porque a tela não rola; então o app faz isso
+function prepararPuxarParaAtualizar() {
+  const indicador = $('#puxar');
+  let inicio = null;
+  let distancia = 0;
+
+  document.addEventListener('touchstart', (ev) => {
+    inicio = (ev.touches.length === 1 && !assistenteAberto()) ? ev.touches[0].clientY : null;
+    distancia = 0;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (ev) => {
+    if (inicio === null) return;
+    distancia = ev.touches[0].clientY - inicio;
+    if (distancia < 15) {
+      indicador.hidden = true;
+      return;
+    }
+    const pronto = distancia >= DISTANCIA_PARA_ATUALIZAR;
+    indicador.hidden = false;
+    indicador.classList.toggle('pronto', pronto);
+    indicador.textContent = pronto ? '🔄 Solte para atualizar' : '⬇️ Puxe para atualizar';
+    indicador.style.setProperty('--puxado', `${Math.min(distancia, DISTANCIA_PARA_ATUALIZAR * 1.4) / 2}px`);
+  }, { passive: true });
+
+  const soltar = () => {
+    if (inicio === null) return;
+    inicio = null;
+    if (distancia >= DISTANCIA_PARA_ATUALIZAR) {
+      indicador.textContent = '🔄 Atualizando…';
+      atualizarApp();
+    } else {
+      indicador.hidden = true;
+    }
+  };
+  document.addEventListener('touchend', soltar);
+  document.addEventListener('touchcancel', soltar);
+}
+
+// Funciona sem internet depois da primeira visita, e se atualiza sozinho quando há versão nova
+function prepararVersaoNova() {
+  const permitido = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!('serviceWorker' in navigator) || !permitido) return;
+
+  const jaTinhaVersao = Boolean(navigator.serviceWorker.controller);
+  let recarregou = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // Chegou versão nova: recarrega, mas nunca no meio de uma conversa ou abrindo o mapa
+    if (!jaTinhaVersao || recarregou || assistenteAberto() || mapaPendente) return;
+    recarregou = true;
+    location.reload();
+  });
+
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((registro) => {
+    // Ao voltar para o app (ex.: depois do mapa), confere se há versão nova
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') registro.update().catch(() => {});
+    });
+  }).catch(() => {});
+}
+
+/* =========================================================
    Início
    ========================================================= */
 
@@ -508,10 +583,8 @@ function iniciar() {
     speechSynthesis.addEventListener?.('voiceschanged', escolherVoz);
   }
 
-  // Funciona sem internet depois da primeira visita (números de emergência sempre disponíveis)
-  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
+  prepararPuxarParaAtualizar();
+  prepararVersaoNova();
 }
 
 iniciar();

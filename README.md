@@ -20,6 +20,8 @@ No topo, o botão **🔊 Ouvir** lê a tela em voz alta, com uma **voz mansa e s
 **Nada precisa ser rolado:** cada tela ocupa exatamente a altura do celular, e os cartões e as letras
 crescem ou diminuem para caber (em pé ou deitado, do celular pequeno ao computador).
 Os números de emergência funcionam mesmo sem internet depois da primeira visita.
+**Para atualizar:** puxe a tela para baixo e solte quando aparecer "Solte para atualizar".
+Quando sai uma versão nova, o app também se atualiza sozinho ao ser aberto.
 
 Visual: identidade da logo Amparo RS (azul-marinho #07306E, amarelo #FCD657, fundo creme #FFF7E2) e fonte Nunito.
 A logo fica em `img/` (símbolo, nome e logo completa) e os ícones do app em `icons/`.

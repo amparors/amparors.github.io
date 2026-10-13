@@ -241,6 +241,22 @@ h2 { margin: 0; font-size: min(1.55rem, 7cqh); font-weight: 800; line-height: 1.
 }
 .aviso-mapa[hidden] { display: none; }
 
+/* ---------- Puxar para baixo para atualizar ---------- */
+.puxar {
+  --puxado: 0px;
+  position: fixed; z-index: 9;
+  top: calc(env(safe-area-inset-top) + .75rem);
+  left: 50%;
+  transform: translate(-50%, var(--puxado));
+  padding: .55rem 1.1rem;
+  border: 3px solid var(--borda); border-radius: 999px;
+  background: #fff; color: var(--azul);
+  font-size: 1rem; font-weight: 800; white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .2);
+}
+.puxar.pronto { background: var(--amarelo); border-color: var(--amarelo-escuro); }
+.puxar[hidden] { display: none; }
+
 /* ---------- Menu de baixo (com o botão Falar) ---------- */
 .menu {
   flex: none;

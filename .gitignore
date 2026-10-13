@@ -1,0 +1,5 @@
+.certificado/
+_teste.html
+__pycache__/
+# A apresentação em PDF não vai para o site público
+*.pdf

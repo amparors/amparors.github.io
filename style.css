@@ -1,0 +1,343 @@
+/* Amparo RS — visual de celular, letras grandes e alto contraste.
+   Cores tiradas da logo: azul-marinho #07306E, amarelo #FCD657, cinza #D4D3D8 e fundo creme #FFF7E2.
+
+   Tudo cabe na tela, sem rolar: o app ocupa exatamente a altura do celular e
+   os cartões (e as letras dentro deles) crescem ou diminuem para caber.
+   As unidades "cqh"/"cqw" são porcentagens da altura/largura da caixa onde o texto está. */
+
+/* Fonte Nunito guardada no próprio projeto (licença livre OFL, ver fonts/OFL.txt) */
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url("fonts/nunito.woff2") format("woff2");
+}
+
+:root {
+  --azul-escuro: #04214d;
+  --azul: #07306e;
+  --amarelo: #fcd657;
+  --amarelo-escuro: #d9ac1f;
+  --amarelo-claro: #fff1c2;
+  --cinza: #d4d3d8;
+  --fundo: #fff7e2;
+  --fundo-fora: #f1e6c6;
+  --cartao: #ffffff;
+  --texto: #0b2350;
+  --texto-suave: #4a556b;
+  --borda: #e3d6b3;
+  --verde: #15803d;
+  --verde-escuro: #116330;
+  --vermelho: #b91c1c;
+  --foco: #07306e;
+
+  --policia: #07306e;
+  --samu: #b91c1c;
+  --bombeiros: #b8400b;
+  --defesa: #f59e0b;
+
+  --largura-app: 560px;
+  --altura-menu: clamp(3.4rem, 11dvh, 5.2rem);
+  --espaco: clamp(.4rem, 1.5dvh, .75rem);
+}
+
+/* Letra base: acompanha a largura no celular em pé e a altura no celular deitado */
+html { font-size: clamp(16px, min(4.6vw, 3.2vh), 21px); }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.3;
+  color: var(--texto);
+  background: var(--fundo);
+  -webkit-text-size-adjust: 100%;
+}
+
+button, input { font: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 4px solid var(--foco); outline-offset: 3px; }
+
+.oculto {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ---------- Topo com a logo ---------- */
+.topo {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  padding: clamp(.3rem, 1dvh, .5rem) max(1rem, calc(50% - var(--largura-app) / 2 + 1rem));
+  padding-top: calc(clamp(.3rem, 1dvh, .5rem) + env(safe-area-inset-top));
+  background: #fff; color: var(--azul);
+  border-bottom: 5px solid var(--amarelo);
+  box-shadow: 0 2px 8px rgba(7, 48, 110, .08);
+}
+.topo h1 { flex: 1 1 auto; margin: 0; min-width: 0; line-height: 0; }
+.marca { display: flex; align-items: center; gap: .45rem; }
+.marca-simbolo { flex-shrink: 0; height: clamp(34px, min(12vw, 7dvh), 52px); width: auto; }
+/* Se faltar espaço, o nome diminui sem cortar */
+.marca-nome {
+  flex: 0 1 auto; min-width: 0;
+  height: clamp(20px, min(7vw, 4.2dvh), 32px); width: auto;
+  object-fit: contain; object-position: left center;
+}
+.btn-topo {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 3.3rem; min-height: clamp(2.8rem, 7dvh, 3.3rem); padding: .2rem .5rem;
+  border: 0; border-radius: 12px;
+  background: var(--azul); color: #fff;
+  font-size: .75rem; font-weight: 800; line-height: 1.1;
+}
+.btn-topo-icone { font-size: 1.25rem; }
+
+/* ---------- Área das telas: ocupa o espaço que sobra entre o topo e o menu ---------- */
+main {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--largura-app);
+  margin: 0 auto;
+  padding: var(--espaco) 1rem;
+  display: flex;
+  flex-direction: column;
+  container-type: size;
+}
+.tela {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco);
+}
+.tela[hidden] { display: none; }
+
+h2 { margin: 0; font-size: min(1.55rem, 7cqh); font-weight: 800; line-height: 1.15; }
+.tela > h2::after {
+  content: ""; display: block;
+  width: 3rem; height: 4px; margin-top: .2rem;
+  border-radius: 3px; background: var(--amarelo);
+}
+.dica { margin: 0; font-size: min(1.05rem, 4.2cqh); line-height: 1.25; color: var(--texto-suave); }
+
+/* Tela muito baixa (celular deitado): esconde a frase de ajuda para sobrar espaço */
+@container (max-height: 330px) {
+  .dica, .tela > h2::after { display: none; }
+}
+
+/* ---------- Tela 1: cartões de emergência (2 x 2) ---------- */
+.grade-emergencia {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--espaco);
+}
+.cartao-emerg {
+  container-type: size;
+  min-width: 0; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: .3rem;
+  border-radius: 20px;
+  text-align: center; text-decoration: none; color: #fff;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, .28);
+}
+.cartao-emerg:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, .28); }
+.cartao-emerg .icone { font-size: min(27cqh, 32cqw, 4.5rem); line-height: 1; }
+.cartao-emerg .nome { margin-top: 3cqh; font-size: min(12cqh, 11.5cqw, 1.6rem); font-weight: 800; line-height: 1.1; }
+.cartao-emerg .numero { font-size: min(26cqh, 30cqw, 3.8rem); font-weight: 900; letter-spacing: .03em; line-height: 1.05; }
+.cartao-emerg .quando { font-size: min(9cqh, 8.5cqw, 1.1rem); font-weight: 700; line-height: 1.15; }
+/* Cartão baixo: tira a frase pequena e aumenta o resto */
+@container (max-height: 140px) {
+  .cartao-emerg .quando { display: none; }
+  .cartao-emerg .icone { font-size: min(31cqh, 32cqw); }
+  .cartao-emerg .nome { font-size: min(15cqh, 12cqw); }
+  .cartao-emerg .numero { font-size: min(33cqh, 32cqw); }
+}
+.cor-azul { background: var(--policia); }
+.cor-vermelho { background: var(--samu); }
+.cor-laranja { background: var(--bombeiros); }
+.cor-amarelo { background: var(--defesa); color: #111; }
+
+/* Outros telefones (CVV e Disque 100), lado a lado */
+.lista-uteis {
+  flex: none;
+  height: clamp(3.4rem, 19cqh, 6.5rem);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espaco);
+}
+.cartao-util {
+  container-type: size;
+  min-width: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; gap: 4cqw;
+  padding: .2rem .4rem;
+  border: 3px solid var(--borda); border-radius: 16px;
+  background: var(--cartao); color: var(--texto); text-decoration: none;
+}
+.cartao-util .icone { flex-shrink: 0; font-size: min(42cqh, 22cqw, 2.6rem); line-height: 1; }
+.cartao-util .textos { display: flex; flex-direction: column; min-width: 0; }
+.cartao-util .rotulo { font-size: min(23cqh, 10cqw, 1.2rem); font-weight: 800; line-height: 1.1; white-space: nowrap; }
+.cartao-util .numero { font-size: min(38cqh, 19cqw, 2.1rem); font-weight: 900; line-height: 1.05; color: var(--verde); }
+/* Cartão largo e baixo (celular deitado): nome e número na mesma linha */
+@container (min-aspect-ratio: 3/1) {
+  .cartao-util .textos { flex-direction: row; align-items: baseline; gap: .5rem; }
+  .cartao-util .icone { font-size: min(55cqh, 2.6rem); }
+  .cartao-util .rotulo { font-size: min(40cqh, 1.2rem); }
+  .cartao-util .numero { font-size: min(58cqh, 2.1rem); }
+}
+
+/* ---------- Telas 2 e 3: opções que abrem o Google Maps ---------- */
+.categorias {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: var(--espaco);
+}
+/* Número ímpar de opções: a última ocupa a linha inteira */
+.categorias > .categoria:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.categoria {
+  container-type: size;
+  min-width: 0; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: .3rem;
+  border: 3px solid var(--borda); border-radius: 18px;
+  background: var(--cartao); color: var(--texto);
+  text-align: center;
+}
+.categoria-conteudo { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.categoria .icone { font-size: min(36cqh, 30cqw, 3.6rem); line-height: 1; }
+.categoria .rotulo { margin-top: 4cqh; font-size: min(18cqh, 12.5cqw, 1.35rem); font-weight: 800; line-height: 1.15; }
+/* Opção larga e baixa: desenho ao lado do nome */
+@container (min-aspect-ratio: 2/1) {
+  .categoria-conteudo { flex-direction: row; gap: .5rem; }
+  .categoria .icone { font-size: min(52cqh, 3.6rem); }
+  .categoria .rotulo { margin-top: 0; font-size: min(26cqh, 8cqw, 1.35rem); text-align: left; }
+}
+.categoria[aria-pressed="true"] { border-color: var(--amarelo-escuro); background: var(--amarelo-claro); box-shadow: inset 0 0 0 2px var(--amarelo-escuro); }
+
+/* ---------- Menu de baixo (com o botão Falar) ---------- */
+.menu {
+  flex: none;
+  width: 100%; max-width: var(--largura-app);
+  margin: 0 auto;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #fff; border-top: 3px solid var(--borda);
+}
+.menu button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem;
+  min-width: 0; height: var(--altura-menu); padding: .2rem .1rem;
+  border: 0; background: #fff; color: var(--texto);
+  font-size: clamp(11px, 3.5vw, .9rem); font-weight: 800; line-height: 1.1;
+}
+.menu-icone { font-size: min(1.8rem, 5.5dvh); line-height: 1; }
+.menu button[aria-current="page"] { background: var(--azul); color: #fff; }
+.menu .menu-falar { background: var(--amarelo); color: var(--azul); box-shadow: inset 0 0 0 3px var(--amarelo-escuro); }
+.menu .menu-falar .menu-icone { font-size: min(2.1rem, 5.2dvh); }
+
+/* ---------- Assistente (voz e chat) ---------- */
+.assistente {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(0, 0, 0, .55);
+}
+.assistente[hidden] { display: none; }
+.assistente-caixa {
+  display: flex; flex-direction: column; gap: var(--espaco);
+  width: 100%; max-width: var(--largura-app);
+  height: min(94vh, 46rem); height: min(94dvh, 46rem);
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
+  background: var(--fundo);
+}
+.assistente-topo { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.assistente-topo h2 { font-size: 1.35rem; }
+.btn-fechar {
+  width: 3.3rem; height: 3.3rem; flex-shrink: 0;
+  border: 3px solid var(--borda); border-radius: 50%;
+  background: #fff; color: var(--texto); font-size: 1.4rem; font-weight: 800;
+}
+/* A conversa mostra sempre as últimas mensagens, sem precisar rolar */
+.conversa {
+  flex: 1; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: .5rem;
+  padding: .2rem;
+}
+.msg { flex-shrink: 0; max-width: 88%; padding: .6rem .9rem; border-radius: 16px; font-size: 1.05rem; overflow-wrap: anywhere; }
+.msg-app { align-self: flex-start; background: #fff; border: 2px solid var(--borda); border-bottom-left-radius: 4px; }
+.msg-voce { align-self: flex-end; background: var(--amarelo-claro); border: 2px solid var(--amarelo-escuro); border-bottom-right-radius: 4px; }
+.msg-ouvindo { font-style: italic; color: var(--texto-suave); }
+
+.assist-acao:empty { display: none; }
+.assist-acao { display: flex; flex-direction: column; gap: .5rem; }
+.btn-ligar-grande {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  min-height: clamp(3.2rem, 9dvh, 4.5rem); padding: .4rem 1rem;
+  border-radius: 18px; background: var(--verde); color: #fff;
+  font-size: 1.5rem; font-weight: 900; line-height: 1.15; text-decoration: none; text-align: center;
+  box-shadow: 0 4px 0 var(--verde-escuro);
+}
+.sugestoes { display: flex; flex-wrap: wrap; gap: .5rem; }
+.sugestao {
+  min-height: 3rem; padding: .3rem .9rem;
+  border: 3px solid var(--azul); border-radius: 999px;
+  background: #fff; color: var(--azul); font-weight: 800;
+}
+
+.btn-falar {
+  flex: none;
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  min-height: clamp(3rem, 8.5dvh, 4.2rem); border: 0; border-radius: 18px;
+  background: var(--amarelo); color: var(--azul); font-size: 1.3rem; font-weight: 800;
+  box-shadow: 0 4px 0 var(--amarelo-escuro);
+}
+.btn-falar[hidden] { display: none; }
+.btn-falar.ouvindo { background: var(--vermelho); color: #fff; animation: pulsar 1.2s ease-in-out infinite; }
+@keyframes pulsar { 50% { box-shadow: 0 0 0 8px rgba(185, 28, 28, .25); } }
+
+.assist-form { flex: none; display: flex; gap: .5rem; }
+.assist-form input {
+  flex: 1 1 10rem; min-width: 0; min-height: 3.2rem; padding: .4rem .8rem;
+  border: 3px solid var(--borda); border-radius: 14px;
+  background: #fff; color: var(--texto);
+}
+.assist-form input:focus { border-color: var(--azul); outline: none; }
+.assist-form button {
+  flex-shrink: 0; min-height: 3.2rem; padding: .3rem 1rem;
+  border: 0; border-radius: 14px; background: var(--azul); color: #fff; font-weight: 800;
+}
+
+/* ---------- Telas largas: o app fica em formato de celular, centralizado ---------- */
+@media (min-width: 600px) {
+  body { background: var(--fundo-fora); }
+  main { background: var(--fundo); box-shadow: 0 0 0 1px var(--borda); }
+  .menu { border-left: 1px solid var(--borda); border-right: 1px solid var(--borda); }
+}
+
+/* ---------- Celular deitado: cartões em uma linha só ---------- */
+@media (orientation: landscape) and (max-height: 560px) {
+  :root { --largura-app: 900px; }
+  .grade-emergencia { grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr; }
+  .categorias { grid-template-columns: repeat(3, 1fr); }
+  .categorias > .categoria:last-child:nth-child(odd) { grid-column: auto; }
+  .assistente-caixa { padding-top: .6rem; }
+  .assistente-topo h2 { font-size: 1.1rem; }
+  .btn-fechar { width: 2.6rem; height: 2.6rem; }
+  .assist-form input, .assist-form button { min-height: 2.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

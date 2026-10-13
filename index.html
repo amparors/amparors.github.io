@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Amparo RS: telefones de emergência, lazer e lugares de ajuda para idosos.">
+  <title>Amparo RS</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preload" href="fonts/nunito.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topo">
+    <h1 class="marca">
+      <img class="marca-simbolo" src="img/simbolo.png" alt="" width="102" height="102">
+      <img class="marca-nome" src="img/nome.png" alt="Amparo RS" width="569" height="120">
+    </h1>
+    <div class="topo-acoes">
+      <button id="btn-ouvir" class="btn-topo" type="button" aria-label="Ouvir o que está nesta tela">
+        <span class="btn-topo-icone" aria-hidden="true">🔊</span><span>Ouvir</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section id="tela-emergencia" class="tela" aria-labelledby="titulo-emergencia">
+      <h2 id="titulo-emergencia">Emergência</h2>
+      <p class="dica">Toque no desenho para ligar</p>
+      <div id="lista-emergencia" class="grade-emergencia"></div>
+      <div id="lista-uteis" class="lista-uteis" aria-label="Outros telefones"></div>
+    </section>
+
+    <section id="tela-lazer" class="tela" aria-labelledby="titulo-lazer" hidden>
+      <h2 id="titulo-lazer">Lazer e atividades</h2>
+      <p class="dica">Toque numa opção e o mapa abre com os lugares perto de você</p>
+      <div class="categorias" data-grupo="lazer"></div>
+    </section>
+
+    <section id="tela-ajuda" class="tela" aria-labelledby="titulo-ajuda" hidden>
+      <h2 id="titulo-ajuda">Lugares de ajuda</h2>
+      <p class="dica">Toque no que você precisa e o mapa abre perto de você</p>
+      <div class="categorias" data-grupo="ajuda"></div>
+    </section>
+  </main>
+
+  <nav class="menu" aria-label="Telas do aplicativo">
+    <button type="button" data-tela="emergencia" aria-current="page">
+      <span class="menu-icone" aria-hidden="true">🚨</span><span>Emergência</span>
+    </button>
+    <button type="button" data-tela="lazer">
+      <span class="menu-icone" aria-hidden="true">🌳</span><span>Lazer</span>
+    </button>
+    <button type="button" data-tela="ajuda">
+      <span class="menu-icone" aria-hidden="true">🏥</span><span>Ajuda</span>
+    </button>
+    <button type="button" id="btn-mic" class="menu-falar" aria-label="Falar ou escrever o que você precisa">
+      <span class="menu-icone" aria-hidden="true">🎤</span><span>Falar</span>
+    </button>
+  </nav>
+
+  <div id="assistente" class="assistente" hidden>
+    <div class="assistente-caixa" role="dialog" aria-modal="true" aria-labelledby="titulo-assistente">
+      <div class="assistente-topo">
+        <h2 id="titulo-assistente">Do que você precisa?</h2>
+        <button id="assist-fechar" class="btn-fechar" type="button" aria-label="Fechar">✕</button>
+      </div>
+      <div id="conversa" class="conversa" aria-live="polite"></div>
+      <div id="assist-acao" class="assist-acao"></div>
+      <button id="assist-falar" class="btn-falar" type="button">
+        <span aria-hidden="true">🎤</span> <span class="btn-falar-texto">Toque e fale</span>
+      </button>
+      <form id="assist-form" class="assist-form">
+        <label for="assist-texto" class="oculto">Escreva o que você precisa</label>
+        <input id="assist-texto" type="text" placeholder="Ou escreva aqui..." autocomplete="off" enterkeyhint="send">
+        <button type="submit">Enviar</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

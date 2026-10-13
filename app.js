@@ -61,7 +61,10 @@ const INTENCOES = [
     'maus tratos', 'maltrat', 'violencia', 'me bate', 'me batem', 'abandon', 'denunc', 'abuso',
     'pegam meu dinheiro', 'tiram meu dinheiro'] },
   { tipo: 'ligar', alvo: 'cvv', palavras: [
-    'triste', 'sozinh', 'solidao', 'desabaf', 'depress', 'angust', 'conversar com alguem', 'quero conversar'] },
+    'triste', 'sozinh', 'solidao', 'desabaf', 'depress', 'angust', 'desanim', 'chor', 'saudade',
+    'falar com alguem', 'falar com alguma pessoa', 'falar com uma pessoa', 'alguem pra conversar', 'alguem para conversar',
+    'alguem pra falar', 'alguem para falar', 'conversar', 'companhia', 'ninguem', 'me escutar', 'me ouvir',
+    'nao aguento mais', 'quero morrer', 'vontade de morrer', 'sem vontade de viver'] },
 
   { tipo: 'lugar', grupo: 'ajuda', cat: 'farmacia', palavras: ['farmacia', 'remedio', 'medicamento', 'drogaria', 'plantao'] },
   { tipo: 'lugar', grupo: 'ajuda', cat: 'hospital', palavras: ['hospital', 'hospitais', 'pronto socorro', 'pronto atendimento', 'upa'] },

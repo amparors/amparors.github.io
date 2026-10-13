@@ -1,6 +1,6 @@
 // Guarda os arquivos do app no celular para abrir mesmo sem internet.
 // Ao mudar algum arquivo, aumente o número da versão.
-const CACHE = 'amparo-rs-v10';
+const CACHE = 'amparo-rs-v11';
 const ARQUIVOS = [
   './',
   'index.html',

@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Testes do Amparo RS</title>
+<style>
+  body { margin: 0; padding: 12px; background: #333; color: #fff; font: 14px/1.4 system-ui, sans-serif; }
+  #placar { white-space: pre-wrap; margin-bottom: 12px; }
+  #palco { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  iframe { border: 0; background: #fff; }
+</style>
+</head>
+<body>
+<div id="placar">Rodando os testes…</div>
+<div id="palco"></div>
+<script>
+/*
+  Testes automáticos do Amparo RS.
+  Abre o app dentro de "celulares de mentira" (molduras do tamanho de telas reais)
+  e confere se tudo continua funcionando. Pode ser aberto direto no navegador ou
+  pelo testes/rodar_testes.py. No fim, o título da página vira "RESULTADO {...}".
+*/
+const APP = '../index.html';
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+const resultados = [];
+
+function registrar(nome, ok, detalhe = '') {
+  resultados.push({ nome, ok, detalhe });
+  document.getElementById('placar').textContent = resultados
+    .map((r) => `${r.ok ? '✅' : '❌'} ${r.nome}${r.detalhe ? ' — ' + r.detalhe : ''}`).join('\n');
+}
+
+// Abre o app numa moldura do tamanho de um celular. A voz é trocada por uma
+// versão silenciosa que só anota as frases (j.__falas) e nunca termina sozinha.
+function abrirApp(largura, altura) {
+  return new Promise((pronto, falhou) => {
+    const f = document.createElement('iframe');
+    f.style.width = `${largura}px`;
+    f.style.height = `${altura}px`;
+    f.src = APP;
+    const relogio = setTimeout(() => falhou(new Error('o app não abriu')), 15000);
+    f.onload = () => {
+      f.onload = null;
+      clearTimeout(relogio);
+      const j = f.contentWindow;
+      j.__falas = [];
+      if (j.speechSynthesis) j.speechSynthesis.speak = (u) => j.__falas.push(u);
+      pronto({ f, j, d: j.document });
+    };
+    document.getElementById('palco').append(f);
+  });
+}
+
+function fechar(app) { app.f.remove(); }
+
+// Saiu do app (abriu o mapa ou recarregou para outra página)?
+function saiuDoApp(app) {
+  try { return !app.f.contentWindow.location.pathname.endsWith('/index.html'); } catch (e) { return true; }
+}
+
+function toque(app, tipo, y) {
+  const j = app.f.contentWindow;
+  const alvo = j.document.querySelector('.cartao-emerg');
+  const t = new j.Touch({ identifier: 1, target: alvo, clientX: 150, clientY: y });
+  alvo.dispatchEvent(new j.TouchEvent(tipo, {
+    touches: tipo === 'touchend' ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true,
+  }));
+}
+
+async function teste(nome, corpo) {
+  try {
+    const detalhe = await corpo();
+    registrar(nome, true, detalhe || '');
+  } catch (e) {
+    registrar(nome, false, e.message);
+  }
+}
+
+function confere(condicao, mensagem) { if (!condicao) throw new Error(mensagem); }
+
+/* ---------------------------------------------------------------- */
+
+const TAMANHOS = [
+  [320, 540], [360, 640], [390, 700], [412, 780], [412, 915], [430, 932], // em pé
+  [740, 330], [915, 412], // deitado
+  [1280, 720], // computador
+];
+
+async function rodar() {
+  await teste('Números de emergência corretos', async () => {
+    const app = await abrirApp(390, 700);
+    const links = [...app.d.querySelectorAll('.cartao-emerg, .cartao-util')].map((a) => a.getAttribute('href'));
+    fechar(app);
+    const esperado = ['tel:190', 'tel:192', 'tel:193', 'tel:199', 'tel:188', 'tel:100'];
+    confere(JSON.stringify(links) === JSON.stringify(esperado), `vieram ${links.join(', ')}`);
+    return links.map((l) => l.slice(4)).join(', ');
+  });
+
+  await teste('Tudo cabe na tela, sem rolar e sem cortar (todas as telas e tamanhos)', async () => {
+    const problemas = [];
+    for (const [w, h] of TAMANHOS) {
+      for (const tela of ['emergencia', 'lazer', 'ajuda', 'falar']) {
+        const app = await abrirApp(w, h);
+        const { j, d } = app;
+        if (tela === 'falar') { j.abrirAssistente(); j.pararDeOuvir(); j.processar('estou passando mal'); }
+        else j.mostrarTela(tela);
+        await esperar(150);
+        const main = d.querySelector('main');
+        if (d.scrollingElement.scrollHeight > j.innerHeight + 1 || main.scrollHeight > main.clientHeight + 1) {
+          problemas.push(`${w}x${h} ${tela}: rola`);
+        }
+        // Botões do menu de baixo inteiros dentro da tela
+        for (const b of d.querySelectorAll('.menu button')) {
+          const r = b.getBoundingClientRect();
+          if (r.bottom > j.innerHeight + 1 || r.top < 0) problemas.push(`${w}x${h} ${tela}: menu "${b.textContent.trim()}" cortado`);
+          if (b.scrollHeight > b.clientHeight + 1) problemas.push(`${w}x${h} ${tela}: texto do menu cortado`);
+        }
+        // Cartões sem texto cortado
+        for (const c of d.querySelectorAll('.tela:not([hidden]) .cartao-emerg, .tela:not([hidden]) .categoria, .tela:not([hidden]) .cartao-util')) {
+          if (c.scrollHeight > c.clientHeight + 1 || c.scrollWidth > c.clientWidth + 1) problemas.push(`${w}x${h} ${tela}: "${c.textContent.trim().slice(0, 15)}" cortado`);
+        }
+        if (tela === 'falar') {
+          const botao = d.querySelector('.btn-ligar-grande').getBoundingClientRect();
+          if (botao.bottom > j.innerHeight + 1) problemas.push(`${w}x${h} falar: botão verde fora da tela`);
+        }
+        fechar(app);
+      }
+    }
+    confere(!problemas.length, problemas.slice(0, 6).join(' | '));
+    return `${TAMANHOS.length} tamanhos x 4 telas`;
+  });
+
+  await teste('Assistente entende os pedidos', async () => {
+    const app = await abrirApp(390, 700);
+    const casos = [
+      ['estou passando mal', 'ligar:samu'], ['me ajuda, caí no chão', 'ligar:samu'],
+      ['tem fogo aqui', 'ligar:bombeiros'], ['entrou um ladrão', 'ligar:policia'],
+      ['quero falar com a polícia', 'ligar:policia'], ['a rua está alagando', 'ligar:defesa'],
+      ['Preciso falar com alguém', 'ligar:cvv'], ['me sinto muito sozinha', 'ligar:cvv'],
+      ['não tenho ninguém', 'ligar:cvv'], ['estão me maltratando', 'ligar:disque100'],
+      ['ligar para o 192', 'ligar:samu'],
+      ['tem farmácia aberta?', 'lugar:farmacia'], ['preciso de um hospital', 'lugar:hospital'],
+      ['onde tem posto de saúde', 'lugar:posto'], ['quero ir numa praça', 'lugar:pracas'],
+      ['grupo da terceira idade', 'lugar:convivencia'],
+      ['quero ir na missa', 'nada'],
+    ];
+    const erros = casos.map(([frase, esperado]) => {
+      const it = app.j.entender(frase);
+      const veio = it ? `${it.tipo}:${it.cat || it.alvo || it.tela}` : 'nada';
+      return veio === esperado ? null : `"${frase}" foi para ${veio} (esperado ${esperado})`;
+    }).filter(Boolean);
+    fechar(app);
+    confere(!erros.length, erros.join(' | '));
+    return `${casos.length} frases`;
+  });
+
+  await teste('Pedido de ligação mostra o botão verde e não liga sozinho', async () => {
+    const app = await abrirApp(390, 700);
+    app.j.abrirAssistente(); app.j.pararDeOuvir(); app.j.processar('Preciso falar com alguém');
+    await esperar(800);
+    const botao = app.d.querySelector('#assist-acao .btn-ligar-grande');
+    const ficou = !saiuDoApp(app);
+    fechar(app);
+    confere(botao && botao.getAttribute('href') === 'tel:188', 'botão do CVV não apareceu');
+    confere(ficou, 'saiu do app sozinho');
+    return 'Ligar 188';
+  });
+
+  await teste('Opções abrem o Google Maps certo (urgentes pedem "aberto agora")', async () => {
+    const app = await abrirApp(390, 700);
+    const erros = [];
+    for (const grupo of ['lazer', 'ajuda']) {
+      for (const cat of app.j.eval(`CATEGORIAS.${grupo}`)) {
+        const link = decodeURIComponent(app.j.linkGoogleMaps(cat));
+        if (!link.startsWith('https://www.google.com/maps/search/?api=1&query=')) erros.push(`${cat.id}: link estranho`);
+        if (!link.endsWith('perto de mim')) erros.push(`${cat.id}: sem "perto de mim"`);
+        if (cat.agora && !/abert[ao]s? agora/.test(link)) erros.push(`${cat.id}: sem "aberto agora"`);
+        if (/igreja|templo|missa/i.test(cat.nome + cat.google)) erros.push(`${cat.id}: opção religiosa`);
+      }
+    }
+    fechar(app);
+    confere(!erros.length, erros.join(' | '));
+    return 'Lazer 4 opções, Ajuda 6 opções';
+  });
+
+  await teste('Voz mansa: mais devagar e em português', async () => {
+    const app = await abrirApp(390, 700);
+    app.d.querySelector('#btn-ouvir').click();
+    const fala = app.j.__falas.at(-1);
+    fechar(app);
+    confere(fala, 'não falou nada');
+    confere(Math.abs(fala.rate - 0.85) < 0.01 && Math.abs(fala.pitch - 0.95) < 0.01, `velocidade ${fala.rate}, tom ${fala.pitch}`);
+    confere(fala.lang === 'pt-BR', `idioma ${fala.lang}`);
+    confere(!/!/.test(fala.text), 'frase com exclamação');
+    return `velocidade ${fala.rate.toFixed(2)}, tom ${fala.pitch.toFixed(2)}`;
+  });
+
+  await teste('Fala a frase inteira e só depois abre o mapa', async () => {
+    const app = await abrirApp(390, 700);
+    app.j.mostrarTela('ajuda');
+    app.d.querySelector('[data-cat=farmacia]').click();
+    await esperar(800);
+    const fala = app.j.__falas.at(-1);
+    confere(fala && fala.text === 'Abrindo o mapa de farmácias abertas agora.', `frase: ${fala && fala.text}`);
+    confere(!saiuDoApp(app), 'abriu o mapa antes de terminar de falar');
+    confere(!app.d.querySelector('#aviso-mapa').hidden, 'aviso "Abrindo o mapa" não apareceu');
+    fala.onend();
+    await esperar(2500);
+    const abriu = saiuDoApp(app);
+    fechar(app);
+    confere(abriu, 'não abriu o mapa depois da frase');
+  });
+
+  await teste('Se a voz travar, o mapa abre sozinho em até 6 segundos', async () => {
+    const app = await abrirApp(390, 700);
+    app.j.mostrarTela('lazer');
+    app.d.querySelector('[data-cat=pracas]').click();
+    await esperar(3000);
+    confere(!saiuDoApp(app), 'abriu cedo demais');
+    await esperar(5000);
+    const abriu = saiuDoApp(app);
+    fechar(app);
+    confere(abriu, 'não abriu');
+  });
+
+  await teste('Mudar de tela no meio da frase cancela o mapa', async () => {
+    const app = await abrirApp(390, 700);
+    app.j.mostrarTela('ajuda');
+    app.d.querySelector('[data-cat=hospital]').click();
+    await esperar(400);
+    app.d.querySelector('.menu button[data-tela=emergencia]').click();
+    await esperar(7000);
+    const saiu = saiuDoApp(app);
+    fechar(app);
+    confere(!saiu, 'abriu o mapa mesmo assim');
+  });
+
+  await teste('Puxar a tela para baixo atualiza (e puxada curta não)', async () => {
+    const app = await abrirApp(390, 700);
+    app.j.__marca = 'mesma';
+    toque(app, 'touchstart', 150); toque(app, 'touchmove', 195); toque(app, 'touchend', 195);
+    await esperar(1500);
+    confere(app.f.contentWindow.__marca === 'mesma', 'puxada curta recarregou');
+
+    app.j.abrirAssistente(); app.j.pararDeOuvir();
+    toque(app, 'touchstart', 150); toque(app, 'touchmove', 320); toque(app, 'touchend', 320);
+    await esperar(1500);
+    confere(app.f.contentWindow.__marca === 'mesma', 'recarregou com o assistente aberto');
+    app.j.fecharAssistente();
+
+    toque(app, 'touchstart', 150); toque(app, 'touchmove', 200);
+    const textoPuxando = app.d.querySelector('#puxar').textContent;
+    toque(app, 'touchmove', 270);
+    const textoPronto = app.d.querySelector('#puxar').textContent;
+    const recarregou = new Promise((ok) => { app.f.onload = () => ok(true); setTimeout(() => ok(false), 6000); });
+    toque(app, 'touchend', 270);
+    const r = await recarregou;
+    await esperar(500);
+    const jn = app.f.contentWindow;
+    const nova = jn.__marca === undefined;
+    // Depois de atualizar, a tela não pode voltar deslocada nem com o menu cortado
+    const deslocada = jn.scrollY !== 0 || jn.document.scrollingElement.scrollTop !== 0;
+    const cortados = [...jn.document.querySelectorAll('.menu button')]
+      .filter((b) => b.getBoundingClientRect().bottom > jn.innerHeight + 1).map((b) => b.textContent.trim());
+    fechar(app);
+    confere(/Puxe/.test(textoPuxando) && /Solte/.test(textoPronto), `avisos: "${textoPuxando}" / "${textoPronto}"`);
+    confere(r && nova, 'puxada longa não recarregou');
+    confere(!deslocada, 'tela voltou deslocada depois de atualizar');
+    confere(!cortados.length, `menu cortado depois de atualizar: ${cortados.join(', ')}`);
+  });
+
+  await teste('A tela não se desloca ao arrastar (menu sempre inteiro)', async () => {
+    const app = await abrirApp(390, 700);
+    const { j, d } = app;
+    // Tenta deslocar a tela de todos os jeitos possíveis
+    j.scrollTo(0, 400);
+    d.scrollingElement.scrollTop = 400;
+    d.body.scrollTop = 400;
+    toque(app, 'touchstart', 600); toque(app, 'touchmove', 200); toque(app, 'touchend', 200);
+    await esperar(300);
+    const menu = d.querySelector('.menu').getBoundingClientRect();
+    const topo = d.querySelector('.topo').getBoundingClientRect();
+    fechar(app);
+    confere(Math.abs(menu.bottom - 700) <= 1, `menu termina em ${Math.round(menu.bottom)}px (tela tem 700px)`);
+    confere(Math.abs(topo.top) <= 1, `topo começa em ${Math.round(topo.top)}px`);
+  });
+
+  await teste('Funciona sem internet (app guardado no aparelho)', async () => {
+    const app = await abrirApp(390, 700);
+    const sw = app.j.navigator.serviceWorker;
+    confere(sw, 'navegador sem suporte');
+    await Promise.race([sw.ready, esperar(10000)]);
+    await esperar(1500);
+    const nomes = await app.j.caches.keys();
+    const guardados = nomes.length ? (await (await app.j.caches.open(nomes[0])).keys()).map((r) => new URL(r.url).pathname) : [];
+    fechar(app);
+    const precisa = ['index.html', 'app.js', 'style.css'];
+    const faltam = precisa.filter((p) => !guardados.some((g) => g.endsWith(p)));
+    confere(nomes.length && !faltam.length, `faltam: ${faltam.join(', ') || 'tudo'}`);
+    return `${guardados.length} arquivos guardados (${nomes[0]})`;
+  });
+}
+
+rodar().then(() => {
+  const falhas = resultados.filter((r) => !r.ok).length;
+  // Vai codificado para nenhum acento ou aspas se perder no caminho
+  document.title = 'RESULTADO ' + encodeURIComponent(JSON.stringify({ falhas, resultados }));
+});
+</script>
+</body>
+</html>

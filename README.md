@@ -41,6 +41,21 @@ As cores dos cartões de emergência (vermelho, laranja, amarelo) e o verde de "
    O celular vai avisar que a conexão não é particular: toque em **Avançado** e depois em **Continuar**.
    Isso é normal no teste local e libera a localização e o microfone.
 
+## Testes automáticos
+
+A pasta `testes/` tem uma bateria que abre o app em vários tamanhos de celular e confere:
+números de emergência, que tudo cabe na tela sem rolar nem cortar, o que o assistente entende,
+os links do Google Maps (com "aberto agora" nos urgentes), a voz mansa, a fala antes de abrir o mapa,
+o puxar para atualizar e o funcionamento sem internet.
+
+```bash
+python testes/rodar_testes.py          # testa os arquivos desta pasta
+python testes/rodar_testes.py --site   # testa o site publicado
+```
+
+No GitHub, eles rodam sozinhos a cada mudança publicada e todo dia às 8h no site no ar
+(`.github/workflows/testes.yml`). Se algum falhar, chega um e-mail para a conta.
+
 ## Arquivos
 
 - `index.html`: estrutura das telas

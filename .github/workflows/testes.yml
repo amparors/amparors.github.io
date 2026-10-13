@@ -1,0 +1,30 @@
+# Testes automáticos do Amparo RS.
+# Rodam a cada mudança publicada e todo dia de manhã no site no ar.
+# Se algum teste falhar, o GitHub manda um e-mail para a conta amparors.
+name: Testes do Amparo RS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 11 * * *' # todo dia às 8h (horário de Brasília)
+  workflow_dispatch: # botão "Run workflow" para rodar na hora
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Testar os arquivos do app
+        run: python testes/rodar_testes.py
+
+      - name: Testar o site publicado
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: python testes/rodar_testes.py --site

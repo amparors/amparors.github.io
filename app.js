@@ -477,6 +477,7 @@ function processar(texto, jaMostrado = false) {
 const DISTANCIA_PARA_ATUALIZAR = 90; // pixels puxando para baixo
 
 async function atualizarApp() {
+  window.scrollTo(0, 0);
   try {
     const registro = await navigator.serviceWorker?.getRegistration();
     await registro?.update();
@@ -550,6 +551,9 @@ function prepararVersaoNova() {
    ========================================================= */
 
 function iniciar() {
+  // Ao recarregar, o celular não deve voltar com a tela deslocada
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
   montarEmergencias();
   montarCategorias('lazer');
   montarCategorias('ajuda');

@@ -12,11 +12,11 @@ No celular, abra o link no Chrome e toque em **"Adicionar à tela inicial"** par
 | Tela | O que tem |
 |---|---|
 | 🚨 **Emergência** | Polícia 190, Ambulância/SAMU 192, Bombeiros 193, Defesa Civil 199, com desenhos e números grandes. Também CVV 188 (conversar) e Disque 100 (maus-tratos). Toque para ligar. |
-| 🌳 **Lazer** | Grupos de idosos, praças, exercícios, cultura, igrejas. Ao tocar, **o Google Maps abre direto** com esses lugares perto da pessoa. |
+| 🌳 **Lazer** | Grupos de idosos, praças e parques, exercícios e esporte, cultura e leitura. Ao tocar, **o Google Maps abre direto** com esses lugares perto da pessoa. |
 | 🏥 **Ajuda** | Hospitais, postos de saúde, farmácias, delegacias, assistência social (CRAS), casas de acolhimento. Ao tocar, **o Google Maps abre direto**. Nos de urgência a busca já pede **só os abertos agora**. |
 | 🎤 **Falar** | Botão amarelo em todas as telas: a pessoa **fala** (ou escreve) o que precisa, por exemplo "estou passando mal" ou "quero uma farmácia", e o app mostra o que fazer e responde em voz alta. |
 
-No topo, o botão **🔊 Ouvir** lê a tela em voz alta.
+No topo, o botão **🔊 Ouvir** lê a tela em voz alta, com uma **voz mansa e serena** (mais devagar e num tom mais baixo).
 **Nada precisa ser rolado:** cada tela ocupa exatamente a altura do celular, e os cartões e as letras
 crescem ou diminuem para caber (em pé ou deitado, do celular pequeno ao computador).
 Os números de emergência funcionam mesmo sem internet depois da primeira visita.

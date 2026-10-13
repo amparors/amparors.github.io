@@ -7,7 +7,7 @@
 const EMERGENCIAS = [
   { id: 'policia', nome: 'Polícia', numero: '190', icone: '🚓', cor: 'azul', quando: 'Roubo ou perigo', fala: 'a Polícia' },
   { id: 'samu', nome: 'Ambulância', numero: '192', icone: '🚑', cor: 'vermelho', quando: 'Passando mal', fala: 'a Ambulância, o SAMU',
-    acolhida: 'Mantenha a calma, a ajuda pode vir até você.' },
+    acolhida: 'Respire fundo, com calma. A ajuda pode vir até você.' },
   { id: 'bombeiros', nome: 'Bombeiros', numero: '193', icone: '🚒', cor: 'laranja', quando: 'Fogo ou resgate', fala: 'os Bombeiros' },
   { id: 'defesa', nome: 'Defesa Civil', numero: '199', icone: '🌊', cor: 'amarelo', quando: 'Enchente ou temporal', fala: 'a Defesa Civil' },
 ];
@@ -29,7 +29,6 @@ const CATEGORIAS = {
     { id: 'pracas', nome: 'Praças e parques', icone: '🌳', google: 'praça' },
     { id: 'exercicio', nome: 'Exercícios e esporte', icone: '🤸', google: 'academia ao ar livre' },
     { id: 'cultura', nome: 'Cultura e leitura', icone: '📚', google: 'centro cultural' },
-    { id: 'fe', nome: 'Igrejas e templos', icone: '⛪', google: 'igreja' },
   ],
   ajuda: [
     { id: 'hospital', nome: 'Hospitais', icone: '🏥', agora: 'abertos agora', google: 'hospital pronto-socorro aberto agora' },
@@ -74,7 +73,6 @@ const INTENCOES = [
   { tipo: 'lugar', grupo: 'lazer', cat: 'pracas', palavras: ['praca', 'parque', 'passear', 'caminhar', 'caminhada', 'tomar sol', 'natureza', 'jardim'] },
   { tipo: 'lugar', grupo: 'lazer', cat: 'exercicio', palavras: ['exercicio', 'ginastica', 'academia', 'alongamento', 'esporte', 'hidroginastica', 'yoga', 'ioga', 'pilates', 'atividade fisica'] },
   { tipo: 'lugar', grupo: 'lazer', cat: 'cultura', palavras: ['biblioteca', 'livro', 'leitura', 'museu', 'teatro', 'cinema', 'filme', 'cultura', 'artesanato', 'musica', 'coral', 'show'] },
-  { tipo: 'lugar', grupo: 'lazer', cat: 'fe', palavras: ['igreja', 'missa', 'culto', 'templo', 'rezar', 'orar', 'capela', 'centro espirita'] },
 
   { tipo: 'tela', tela: 'lazer', palavras: ['lazer', 'atividade', 'diversao', 'passeio', 'divertir'] },
   { tipo: 'tela', tela: 'ajuda', palavras: ['lugares de ajuda', 'onde encontro ajuda', 'servico'] },
@@ -120,25 +118,56 @@ function normalizar(texto) {
    Voz do aplicativo (ler em voz alta)
    ========================================================= */
 
+// Voz mansa e serena: um pouco mais devagar e num tom levemente mais baixo
+const VELOCIDADE_DA_VOZ = 0.85;
+const TOM_DA_VOZ = 0.95;
+
 let vozPortugues = null;
+
+// Prefere as vozes em português do Brasil que soam mais naturais no aparelho
+function notaDaVoz(v) {
+  const idioma = v.lang.replace('_', '-');
+  let nota = idioma === 'pt-BR' ? 10 : idioma.startsWith('pt') ? 5 : 0;
+  if (/natural|neural|online|enhanced|premium|aprimorad/i.test(v.name)) nota += 4;
+  if (/google/i.test(v.name)) nota += 3;
+  if (/francisca|thalita|luciana/i.test(v.name)) nota += 2;
+  return nota;
+}
 
 function escolherVoz() {
   if (!('speechSynthesis' in window)) return;
-  const vozes = speechSynthesis.getVoices();
-  vozPortugues = vozes.find((v) => v.lang === 'pt-BR') || vozes.find((v) => v.lang.startsWith('pt')) || null;
+  const vozes = speechSynthesis.getVoices().filter((v) => notaDaVoz(v) >= 5);
+  vozes.sort((a, b) => notaDaVoz(b) - notaDaVoz(a));
+  vozPortugues = vozes[0] || null;
 }
 
-function falar(texto) {
-  if (!('speechSynthesis' in window)) return;
+let falaAtual = null;
+
+// aoTerminar (opcional) roda quando a frase acaba de ser falada
+function falar(texto, aoTerminar) {
+  cancelarMapaPendente();
+  if (!('speechSynthesis' in window)) {
+    if (aoTerminar) aoTerminar();
+    return;
+  }
   speechSynthesis.cancel();
   const fala = new SpeechSynthesisUtterance(texto);
   fala.lang = 'pt-BR';
-  fala.rate = 0.9;
+  fala.rate = VELOCIDADE_DA_VOZ;
+  fala.pitch = TOM_DA_VOZ;
   if (vozPortugues) fala.voice = vozPortugues;
+  if (aoTerminar) {
+    // Só vale para a frase mais recente (outra fala no meio cancela esta)
+    fala.onend = () => { if (falaAtual === fala) aoTerminar(); };
+    fala.onerror = fala.onend;
+  }
+  falaAtual = fala;
   speechSynthesis.speak(fala);
 }
 
 function pararFala() {
+  cancelarMapaPendente();
+  falaAtual = null;
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
@@ -201,6 +230,16 @@ function linkGoogleMaps(cat) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${cat.google} perto de mim`)}`;
 }
 
+// Se a voz não avisar que terminou (acontece em alguns celulares), o mapa abre assim mesmo
+const ESPERA_MAXIMA_DA_FALA = 6000;
+let mapaPendente = null;
+
+function cancelarMapaPendente() {
+  clearTimeout(mapaPendente);
+  mapaPendente = null;
+  $('#aviso-mapa').hidden = true;
+}
+
 function abrirNoMaps(grupo, catId) {
   const cat = CATEGORIAS[grupo].find((c) => c.id === catId);
   const link = linkGoogleMaps(cat);
@@ -211,8 +250,23 @@ function abrirNoMaps(grupo, catId) {
     b.setAttribute('aria-pressed', String(b.dataset.cat === catId));
   });
 
-  falar(`Abrindo o Google Maps com ${oQue} perto de você.`);
-  location.assign(link);
+  // Primeiro fala a frase inteira, depois abre o mapa
+  let abriu = false;
+  const abrir = () => {
+    if (abriu) return;
+    abriu = true;
+    clearTimeout(mapaPendente);
+    mapaPendente = null;
+    location.assign(link);
+    setTimeout(() => { $('#aviso-mapa').hidden = true; }, 1500);
+  };
+  falar(`Abrindo o mapa de ${oQue}.`, abrir);
+  if (!abriu) {
+    const aviso = $('#aviso-mapa');
+    aviso.textContent = `🗺️ Abrindo o mapa de ${oQue}…`;
+    aviso.hidden = false;
+    mapaPendente = setTimeout(abrir, ESPERA_MAXIMA_DA_FALA);
+  }
 }
 
 /* =========================================================
@@ -233,11 +287,11 @@ function textoDaTela(nome) {
   if (nome === 'emergencia') {
     const principais = EMERGENCIAS.map((t) => `${t.nome}: ${t.numero}`).join('. ');
     const outros = UTEIS.map((t) => `${t.nome}: ${t.numero}`).join('. ');
-    return `Tela de emergência. Toque no desenho para ligar. ${principais}. Outros telefones: ${outros}. `
-      + 'Para pedir ajuda falando, toque no botão amarelo escrito Falar.';
+    return `Esta é a tela de emergência. Para ligar, é só tocar no desenho. ${principais}. Outros telefones: ${outros}. `
+      + 'Se quiser pedir ajuda falando, toque no botão amarelo, escrito Falar.';
   }
   const opcoes = CATEGORIAS[nome].map((c) => c.nome).join(', ');
-  return `Tela de ${NOMES_TELA[nome]}. Toque numa opção e o Google Maps abre com os lugares perto de você: ${opcoes}.`;
+  return `Esta é a tela de ${NOMES_TELA[nome]}. Toque numa opção, e o mapa abre com os lugares perto de você. As opções são: ${opcoes}.`;
 }
 
 /* =========================================================
@@ -258,14 +312,14 @@ function abrirAssistente() {
 
   if (!$('#conversa').children.length) {
     mensagem('app', Reconhecimento
-      ? 'Olá! Do que você precisa? Pode falar que eu estou ouvindo.'
-      : 'Olá! Do que você precisa? Escreva aqui embaixo.');
+      ? 'Olá. Do que você precisa? Pode falar, com calma. Estou ouvindo.'
+      : 'Olá. Do que você precisa? Pode escrever aqui embaixo.');
   }
   if (Reconhecimento) {
     ouvir();
   } else {
     $('#assist-falar').hidden = true;
-    falar('Olá! Do que você precisa? Escreva aqui embaixo.');
+    falar('Olá. Do que você precisa? Pode escrever aqui embaixo.');
     $('#assist-texto').focus();
   }
 }
@@ -342,13 +396,13 @@ function ouvir() {
     }
     bolha.remove();
     if (erro === 'not-allowed' || erro === 'service-not-allowed') {
-      responder('Preciso da sua permissão para usar o microfone. Você também pode escrever aqui embaixo.');
+      responder('Preciso da sua permissão para usar o microfone. Se preferir, pode escrever aqui embaixo.');
     } else if (erro === 'network') {
-      responder('Para ouvir a sua voz eu preciso de internet. Você pode escrever aqui embaixo.');
+      responder('Para ouvir a sua voz, eu preciso de internet. Se preferir, pode escrever aqui embaixo.');
     } else if (erro && erro !== 'no-speech' && erro !== 'aborted') {
-      responder('Não consegui ouvir agora. Toque no botão amarelo e tente de novo, ou escreva aqui embaixo.');
+      responder('Não consegui ouvir agora. Quando quiser, toque no botão amarelo e tente de novo.');
     } else {
-      responder('Não ouvi nada. Toque no botão amarelo e fale de novo.');
+      responder('Não consegui ouvir. Quando quiser, toque no botão amarelo e fale de novo, com calma.');
     }
   };
 
@@ -358,7 +412,7 @@ function ouvir() {
     reconhecimentoAtivo = null;
     botaoOuvindo(false);
     bolha.remove();
-    responder('Não consegui ligar o microfone. Você pode escrever aqui embaixo.');
+    responder('Não consegui ligar o microfone. Se preferir, pode escrever aqui embaixo.');
   }
 }
 
@@ -379,7 +433,7 @@ function processar(texto, jaMostrado = false) {
   acao.replaceChildren();
 
   if (!intencao) {
-    responder('Desculpe, não entendi. Você pode falar, por exemplo: ambulância, farmácia ou praça.');
+    responder('Desculpe, não entendi bem. Pode falar de novo, com calma. Por exemplo: ambulância, farmácia ou praça.');
     acao.append(criar('div', { class: 'sugestoes' },
       ...SUGESTOES.map((s) => criar('button', { class: 'sugestao', type: 'button', onclick: () => processar(s) }, s)),
     ));
@@ -388,7 +442,7 @@ function processar(texto, jaMostrado = false) {
 
   if (intencao.tipo === 'ligar') {
     const tel = TELEFONES.find((x) => x.id === intencao.alvo);
-    responder(`${tel.acolhida ? tel.acolhida + ' ' : ''}Para ligar para ${tel.fala}, número ${tel.numero}, toque no botão verde grande.`);
+    responder(`${tel.acolhida ? tel.acolhida + ' ' : ''}Para ligar para ${tel.fala}, número ${tel.numero}, é só tocar no botão verde.`);
     acao.append(criar('a', { class: 'btn-ligar-grande', href: `tel:${tel.numero}` },
       criar('span', { 'aria-hidden': 'true', text: tel.icone }),
       `Ligar ${tel.numero} · ${tel.nome}`,
@@ -443,6 +497,8 @@ function iniciar() {
     pararDeOuvir();
     processar(texto);
   });
+
+  window.addEventListener('pageshow', (ev) => { if (ev.persisted) $('#aviso-mapa').hidden = true; });
 
   if ('speechSynthesis' in window) {
     escolherVoz();
